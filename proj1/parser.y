@@ -16,14 +16,14 @@ char *concat(int count, ...);
 %token <str> T_STRING
 %token T_BEGIN
 %token T_END
-%token T_NEWLINE
+%token T_DOCUMENT
+%token T_TEXTBF
+%token T_TEXTIT
 %token T_DOCUMENTCLASS
 %token T_USEPACKAGE
 %token T_TITLE
 %token T_AUTHOR
 %token T_MAKETITLE
-%token T_TEXTBF
-%token T_TEXTIT
 %token T_INCLUDEGRAPHICS
 %token T_CITE
 %token T_BIBITEM
@@ -31,9 +31,9 @@ char *concat(int count, ...);
 %token T_ESCAPEDOLAR
 %token T_ITEMIZE
 %token T_THEBIBLIOGRAPHY
-%token T_DOCUMENT
+%token T_NEWLINE
 
-%type <str> begin_document_stmt end_document_stmt math_stmt col_list  values_list 
+%type <str> begin_document_stmt end_document_stmt math_stmt textbf_stmt textit_stmt col_list  values_list 
 
 %start stmt_list
 
@@ -46,8 +46,9 @@ stmt_list: 	stmt_list stmt
 ;
 
 stmt:
-		create_stmt ';'	{printf("%s",$1);}
-	|	insert_stmt ';'	{printf("%s",$1);}
+		math_stmt	 T_NEWLINE	{printf("%s",$1);}
+	|	textbf_stmt	 T_NEWLINE	{printf("%s",$1);}
+	|	textit_stmt	 T_NEWLINE	{printf("%s",$1);}
 
 ;
 
@@ -59,7 +60,7 @@ begin_document_stmt:
 				}
 ;
 
-begin_document_stmt:
+end_document_stmt:
 	T_END T_DOCUMENT 	{
 					FILE *F = fopen("saida.html", "a"); 
 					fprintf(F, "fim</body></html>");
@@ -70,9 +71,25 @@ begin_document_stmt:
 math_stmt:
 	'$' T_STRING '$'	{
 					FILE *F = fopen("saida.html", "a"); 
-					fprintf(F, "<html><head></head><body>teste</body></html>");
+					fprintf(F, "%s", $2);
 					fclose(F);
 				}
+;
+
+textbf_stmt:
+	T_TEXTBF '{' T_STRING '}'	{
+						FILE *F = fopen("saida.html", "a"); 
+						fprintf(F, "<b>%s</b>", $3);
+						fclose(F);
+					}
+;
+
+textit_stmt:
+	T_TEXTIT '{' T_STRING '}'	{
+						FILE *F = fopen("saida.html", "a"); 
+						fprintf(F, "<i>%s</i>", $3);
+						fclose(F);
+					}
 ;
 
 col_list:
