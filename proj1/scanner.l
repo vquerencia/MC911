@@ -2,10 +2,10 @@
 #include "parser.h"
 %}
 
-STRING [a-z][a-z0-9_.]*
+STRING [a-z0-9_.\\/*\-\^\[\]+=!&\(\)]+
 WHITESPACE [ \r\t]+
-ANY_CHAR .
 NEWLINE [\n]+
+ANY_CHAR .
 
 %option case-insensitive
 
@@ -28,11 +28,12 @@ NEWLINE [\n]+
 "\\item"		{return T_ITEM;}
 "\\begin{document}"	{return T_BEGIN_DOCUMENT;}
 "\\end{document}"	{return T_END_DOCUMENT;}
-
 "\\$"			{return T_ESCAPEDOLAR;}
 "{thebibliography}"	{return T_THEBIBLIOGRAPHY;}
 "{"			{return '{';}
 "}"			{return '}';}
+"["			{return '[';}
+"]"			{return ']';} 
 "("			{return '(';}
 ")"			{return ')';} 
 "," 			{return ',';}

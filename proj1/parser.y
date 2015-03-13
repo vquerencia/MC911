@@ -38,7 +38,7 @@ char *title;
 %token T_NEWLINE
 
 %type <str> begin_document_stmt end_document_stmt math_stmt textbf_stmt textit_stmt 
-	includegraphics_stmt maketitle_stmt itemize_stmt_begin itemize_stmt_end item
+	includegraphics_stmt maketitle_stmt itemize_stmt_begin itemize_stmt_end item values_list
 
 %start stmt_list
 
@@ -71,18 +71,18 @@ use_package:
 ;
 
 title:
-		T_TITLE	'{' T_STRING '}' T_NEWLINE	{ title = strdup($3);}
+		T_TITLE	'{' values_list '}' T_NEWLINE	{ title = strdup($3);}
 		
 ;
 
 author:
-		T_AUTHOR '{' T_STRING '}' T_NEWLINE
+		T_AUTHOR '{' values_list '}' T_NEWLINE
 ;
 
 begin_document_stmt:
 		T_BEGIN_DOCUMENT T_NEWLINE 	{
 							FILE *F = fopen("saida.html", "w"); 
-							fprintf(F, "<html>\n<head>\n\n</head>\n<body>\n");
+							fprintf(F, "<html>\n<head>\n\n\n<script type='text/x-mathjax-config'>  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}}); </script> <script type='text/javascript' src='https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'> </script> </head>\n<body>\n");
 							fclose(F);
 						}
 ;
@@ -114,15 +114,15 @@ elem_documento:
 
 
 math_stmt:
-		'$' T_STRING '$'	{
+		'$' values_list '$'	{
 						FILE *F = fopen("saida.html", "a"); 
-						fprintf(F, "%s", $2);
+						fprintf(F, "$%s$", $2);
 						fclose(F);
 					}
 ;
 
 textbf_stmt:
-		T_TEXTBF '{' T_STRING '}'	{
+		T_TEXTBF '{' values_list '}'	{
 							FILE *F = fopen("saida.html", "a"); 
 							fprintf(F, "<b>%s</b>", $3);
 							fclose(F);
@@ -130,7 +130,7 @@ textbf_stmt:
 ;
 
 textit_stmt:
-		T_TEXTIT '{' T_STRING '}'	{
+		T_TEXTIT '{' values_list '}'	{
 							FILE *F = fopen("saida.html", "a"); 
 							fprintf(F, "<i>%s</i>", $3);
 							fclose(F);
@@ -201,7 +201,12 @@ item:
 							fclose(F);
 						}
 ;
- 
+
+values_list:
+		T_STRING 		{ $$ = $1; }
+	| 	values_list T_STRING 	{ $$ = concat(3, $1, " ", $2); }
+;
+
 %%
 
 char* concat(int count, ...)
