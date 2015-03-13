@@ -37,7 +37,7 @@ char *title;
 %token T_THEBIBLIOGRAPHY
 %token T_NEWLINE
 
-%type <str> begin_document_stmt end_document_stmt math_stmt textbf_stmt textit_stmt 
+%type <str> begin_document_stmt end_document_stmt math_stmt textbf_stmt textit_stmt texto
 	includegraphics_stmt maketitle_stmt itemize_stmt_begin itemize_stmt_end item values_list
 
 %start stmt_list
@@ -109,6 +109,7 @@ elem_documento:
 	|	itemize_stmt_begin T_NEWLINE
 	|	itemize_stmt_end T_NEWLINE
 	|	item T_NEWLINE
+	|	texto T_NEWLINE
 
 ;
 
@@ -116,7 +117,7 @@ elem_documento:
 math_stmt:
 		'$' values_list '$'	{
 						FILE *F = fopen("saida.html", "a"); 
-						fprintf(F, "$%s$", $2);
+						fprintf(F, "$%s$</br>\n", $2);
 						fclose(F);
 					}
 ;
@@ -124,7 +125,7 @@ math_stmt:
 textbf_stmt:
 		T_TEXTBF '{' values_list '}'	{
 							FILE *F = fopen("saida.html", "a"); 
-							fprintf(F, "<b>%s</b>", $3);
+							fprintf(F, "<b>%s</b></br>\n", $3);
 							fclose(F);
 						}
 ;
@@ -132,7 +133,7 @@ textbf_stmt:
 textit_stmt:
 		T_TEXTIT '{' values_list '}'	{
 							FILE *F = fopen("saida.html", "a"); 
-							fprintf(F, "<i>%s</i>", $3);
+							fprintf(F, "<i>%s</i></br>\n", $3);
 							fclose(F);
 						}
 ;
@@ -140,7 +141,7 @@ textit_stmt:
 includegraphics_stmt:
 		T_INCLUDEGRAPHICS '{' T_STRING '}'	{
 								FILE *F = fopen("saida.html", "a"); 
-								fprintf(F, "<img src='%s'>", $3);
+								fprintf(F, "<img src='%s'></br>\n", $3);
 								fclose(F);
 							}
 ;
@@ -200,6 +201,14 @@ item:
 							fprintf(F, "<li>%s</li>\n", $2); 
 							fclose(F);
 						}
+;
+
+texto:
+	values_list 	{ 
+				FILE *F = fopen("saida.html", "a"); 							
+				fprintf(F, "%s</br>\n", $1); 
+				fclose(F);
+			}
 ;
 
 values_list:
