@@ -23,13 +23,14 @@ NEWLINE [\n]+
 "\\includegraphics"	{return T_INCLUDEGRAPHICS;}
 "\\cite"		{return T_CITE;}
 "\\bibitem"		{return T_BIBITEM;}
-"\\begin"		{return T_BEGIN;}
-"\\end"			{return T_END;}
+"\\begin{itemize}"	{return T_BEGIN_ITEMIZE;}
+"\\end{itemize}"	{return T_END_ITEMIZE;}
 "\\item"		{return T_ITEM;}
+"\\begin{document}"	{return T_BEGIN_DOCUMENT;}
+"\\end{document}"	{return T_END_DOCUMENT;}
+
 "\\$"			{return T_ESCAPEDOLAR;}
-"{itemize}"		{return T_ITEMIZE;}
 "{thebibliography}"	{return T_THEBIBLIOGRAPHY;}
-"{document}"		{return T_DOCUMENT;}
 "{"			{return '{';}
 "}"			{return '}';}
 "("			{return '(';}

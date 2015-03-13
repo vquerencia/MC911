@@ -16,8 +16,10 @@ char *title;
 }
 
 %token <str> T_STRING
-%token T_BEGIN
-%token T_END
+%token T_BEGIN_DOCUMENT
+%token T_END_DOCUMENT
+%token T_BEGIN_ITEMIZE
+%token T_END_ITEMIZE
 %token T_DOCUMENT
 %token T_TEXTBF
 %token T_TEXTIT
@@ -36,7 +38,7 @@ char *title;
 %token T_NEWLINE
 
 %type <str> begin_document_stmt end_document_stmt math_stmt textbf_stmt textit_stmt 
-	includegraphics_stmt maketitle_stmt item_list itemize_stmt aux
+	includegraphics_stmt maketitle_stmt itemize_stmt_begin itemize_stmt_end item
 
 %start stmt_list
 
@@ -46,14 +48,11 @@ char *title;
 
 stmt_list:
 		cabecalho begin_document_stmt documento end_document_stmt
-
 ;
 
 cabecalho:
-		cabecalho elem_cabecalho
+		elem_cabecalho cabecalho
 	|	elem_cabecalho
-	|
-
 ;
 
 elem_cabecalho:
@@ -68,8 +67,7 @@ document_class:
 ;
 
 use_package:
-		use_package T_USEPACKAGE T_NEWLINE
-	|	T_USEPACKAGE '{' T_STRING '}' T_NEWLINE	
+		T_USEPACKAGE '{' T_STRING '}' T_NEWLINE	
 ;
 
 title:
@@ -81,8 +79,24 @@ author:
 		T_AUTHOR '{' T_STRING '}' T_NEWLINE
 ;
 
+begin_document_stmt:
+		T_BEGIN_DOCUMENT T_NEWLINE 	{
+							FILE *F = fopen("saida.html", "w"); 
+							fprintf(F, "<html>\n<head>\n\n</head>\n<body>\n");
+							fclose(F);
+						}
+;
+
+end_document_stmt:
+		T_END_DOCUMENT T_NEWLINE 	{
+							FILE *F = fopen("saida.html", "a"); 
+							fprintf(F, "\n</body>\n</html>");
+							fclose(F);
+						}
+;
+
 documento:
-		documento elem_documento
+		elem_documento documento
 	|	elem_documento
 ;
 
@@ -92,26 +106,12 @@ elem_documento:
 	|	textit_stmt T_NEWLINE	
 	|	includegraphics_stmt T_NEWLINE
 	|	maketitle_stmt T_NEWLINE
-	|	itemize_stmt T_NEWLINE
-	|
+	|	itemize_stmt_begin T_NEWLINE
+	|	itemize_stmt_end T_NEWLINE
+	|	item T_NEWLINE
 
 ;
 
-begin_document_stmt:
-		T_BEGIN T_DOCUMENT T_NEWLINE 	{
-							FILE *F = fopen("saida.html", "w"); 
-							fprintf(F, "<html>\n<head>\n\n</head>\n<body>\n");
-							fclose(F);
-						}
-;
-
-end_document_stmt:
-		T_END T_DOCUMENT T_NEWLINE 	{
-							FILE *F = fopen("saida.html", "a"); 
-							fprintf(F, "\n</body>\n</html>");
-							fclose(F);
-						}
-;
 
 math_stmt:
 		'$' T_STRING '$'	{
@@ -176,30 +176,31 @@ maketitle_stmt:
 							}
 ;
 
-itemize_stmt:
-		T_BEGIN T_ITEMIZE T_NEWLINE item_list T_END T_ITEMIZE	{
+itemize_stmt_begin:
+		T_BEGIN_ITEMIZE 					{
 										FILE *F = fopen("saida.html", "a"); 
-										//fprintf(F, "<ul>%s</ul>", $4);
-										printf("<ul>%s</ul>", $4);
+										fprintf(F, "<ul>\n");;
+										fclose(F);
+									}
+;
+
+itemize_stmt_end:
+		T_END_ITEMIZE						{
+										FILE *F = fopen("saida.html", "a"); 
+										fprintf(F, "</ul>\n");
 										fclose(F);
 									}
 ;
 
 
-item_list:
-		item_list aux		{ $$ = concat(2, $1, $2); }
-	|	
-		
-	//	item_list itemize_stmt T_NEWLINE item_list { $$ = concat(3, $1, $2, $4); printf("A%s\n", $$);}
-	//|	item_list T_ITEM T_STRING T_NEWLINE	{ $$ = concat(4, $1, "<li>", $3, "</li>\n"); printf("B%s\n", $$);}
-	//|	T_ITEM T_STRING T_NEWLINE		{ $$ = concat(3, "<li>", $2, "</li>\n"); }
-	//|
+
+item:
+		T_ITEM T_STRING			{ 
+							FILE *F = fopen("saida.html", "a"); 							
+							fprintf(F, "<li>%s</li>\n", $2); 
+							fclose(F);
+						}
 ;
-
-aux:
-		T_ITEM T_STRING T_NEWLINE	{ $$ = concat(3, "<li>", $2, "</li>\n"); }
-	|	T_BEGIN T_ITEMIZE T_NEWLINE item_list T_END T_ITEMIZE T_NEWLINE	{ $$ = concat(3, "<ul>", $4, "</ul>\n"); }
-
  
 %%
 
