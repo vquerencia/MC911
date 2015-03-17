@@ -8,6 +8,9 @@ char *concat(int count, ...);
 
 char *title;
 
+int bib_count=0;
+
+
 %}
  
 %union{
@@ -34,7 +37,8 @@ char *title;
 %token T_ITEM
 %token T_ESCAPEDOLAR
 %token T_ITEMIZE
-%token T_THEBIBLIOGRAPHY
+%token T_BEGIN_THEBIBLIOGRAPHY
+%token T_END_THEBIBLIOGRAPHY
 %token T_NEWLINE
 
 %type <str> begin_document_stmt end_document_stmt math_stmt textbf_stmt textit_stmt texto
@@ -60,14 +64,17 @@ elem_cabecalho:
 	|	use_package
 	|	title
 	|	author
+	|	T_NEWLINE
 ;
 
 document_class:
 		T_DOCUMENTCLASS '{' T_STRING '}' T_NEWLINE
+	|	T_DOCUMENTCLASS '[' T_STRING ']' '{' T_STRING '}' T_NEWLINE
 ;
 
 use_package:
 		T_USEPACKAGE '{' T_STRING '}' T_NEWLINE	
+	|	T_USEPACKAGE '[' T_STRING ']' '{' T_STRING '}' T_NEWLINE
 ;
 
 title:
@@ -92,6 +99,7 @@ end_document_stmt:
 							FILE *F = fopen("saida.html", "a"); 
 							fprintf(F, "\n</body>\n</html>");
 							fclose(F);
+							return 0;
 						}
 ;
 
@@ -101,15 +109,24 @@ documento:
 ;
 
 elem_documento:
-		math_stmt T_NEWLINE	
-	|	textbf_stmt T_NEWLINE	
-	|	textit_stmt T_NEWLINE	
-	|	includegraphics_stmt T_NEWLINE
+		math_stmt	
+	|	textbf_stmt	
+	|	textit_stmt
+	|	includegraphics_stmt
 	|	maketitle_stmt T_NEWLINE
 	|	itemize_stmt_begin T_NEWLINE
 	|	itemize_stmt_end T_NEWLINE
 	|	item T_NEWLINE
-	|	texto T_NEWLINE
+	|	cite
+	|	texto
+	|	bib_begin T_NEWLINE
+	|	bib_end T_NEWLINE
+	|	bib_item
+	|	T_NEWLINE	{
+						FILE *F = fopen("saida.html", "a"); 
+						fprintf(F, "<br/>");
+						fclose(F);  
+				}
 
 ;
 
@@ -117,7 +134,7 @@ elem_documento:
 math_stmt:
 		'$' values_list '$'	{
 						FILE *F = fopen("saida.html", "a"); 
-						fprintf(F, "$%s$</br>\n", $2);
+						fprintf(F, "$%s$\n", $2);
 						fclose(F);
 					}
 ;
@@ -125,7 +142,7 @@ math_stmt:
 textbf_stmt:
 		T_TEXTBF '{' values_list '}'	{
 							FILE *F = fopen("saida.html", "a"); 
-							fprintf(F, "<b>%s</b></br>\n", $3);
+							fprintf(F, "<b>%s</b>\n", $3);
 							fclose(F);
 						}
 ;
@@ -133,7 +150,7 @@ textbf_stmt:
 textit_stmt:
 		T_TEXTIT '{' values_list '}'	{
 							FILE *F = fopen("saida.html", "a"); 
-							fprintf(F, "<i>%s</i></br>\n", $3);
+							fprintf(F, "<i>%s</i>\n", $3);
 							fclose(F);
 						}
 ;
@@ -141,8 +158,45 @@ textit_stmt:
 includegraphics_stmt:
 		T_INCLUDEGRAPHICS '{' T_STRING '}'	{
 								FILE *F = fopen("saida.html", "a"); 
-								fprintf(F, "<img src='%s'></br>\n", $3);
+								fprintf(F, "<img src='%s'>\n", $3);
 								fclose(F);
+							}
+;
+
+cite:
+		T_CITE '{' T_STRING '}'			{
+								FILE *F = fopen("saida.html", "a"); 
+								fprintf(F, "[%s]", $3);
+								fclose(F);								
+								
+							}
+
+;
+
+bib_begin:
+		T_BEGIN_THEBIBLIOGRAPHY 		{
+								FILE *F = fopen("saida.html", "a"); 
+								fprintf(F, "<ol start=0>\n");
+								fclose(F);	
+							}
+;
+
+bib_end:
+		T_END_THEBIBLIOGRAPHY 			{
+								FILE *F = fopen("saida.html", "a"); 
+								fprintf(F, "</ol>\n");
+								fclose(F);	
+							}
+;
+
+bib_item:
+		T_BIBITEM '{' T_STRING '}'		{
+								FILE *F = fopen("saida.html", "a");
+								char command[300];
+								fprintf(F, "<a name='bib.%d'><li value=%d> ", bib_count, bib_count);
+								fclose(F);
+								sprintf(command, "sed -i 's/%s/<a href='#bib.%d'>%d<\\/a>/g' saida.html", $3, bib_count++, bib_count); 
+								system(command);
 							}
 ;
 
@@ -196,7 +250,7 @@ itemize_stmt_end:
 
 
 item:
-		T_ITEM T_STRING			{ 
+		T_ITEM values_list		{ 
 							FILE *F = fopen("saida.html", "a"); 							
 							fprintf(F, "<li>%s</li>\n", $2); 
 							fclose(F);
@@ -206,14 +260,16 @@ item:
 texto:
 	values_list 	{ 
 				FILE *F = fopen("saida.html", "a"); 							
-				fprintf(F, "%s</br>\n", $1); 
+				fprintf(F, "%s\n", $1); 
 				fclose(F);
 			}
 ;
 
 values_list:
-		T_STRING 		{ $$ = $1; }
-	| 	values_list T_STRING 	{ $$ = concat(3, $1, " ", $2); }
+		T_STRING 				{ $$ = $1; }
+	| 	values_list T_STRING 			{ $$ = concat(3, $1, " ", $2); }
+	| 	'[' values_list ']'		  	{ $$ = concat(3, "[", $2, "]"); }
+
 ;
 
 %%
