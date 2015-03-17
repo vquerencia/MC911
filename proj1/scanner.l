@@ -38,6 +38,7 @@ ANY_CHAR .
 "("				{return '(';}
 ")"				{return ')';} 
 "$"				{return '$';}
+"\\"				{return '\\';}
 
 
 

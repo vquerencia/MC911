@@ -99,6 +99,19 @@ end_document_stmt:
 							FILE *F = fopen("saida.html", "a"); 
 							fprintf(F, "\n</body>\n</html>");
 							fclose(F);
+
+							F = fopen("saida.html", "r");
+							char * line = NULL;
+							size_t len = 0;
+							ssize_t read;
+
+							while ((read = getline(&line, &len, F)) != -1) 
+							{
+							      printf("%s", line);
+
+							}
+
+							fclose(F);
 							return 0;
 						}
 ;
@@ -135,6 +148,12 @@ math_stmt:
 		'$' values_list '$'	{
 						FILE *F = fopen("saida.html", "a"); 
 						fprintf(F, "$%s$\n", $2);
+						fclose(F);
+					}
+
+	|	'$' '\\' values_list '$'	{
+						FILE *F = fopen("saida.html", "a"); 
+						fprintf(F, "$\\%s$\n", $3);
 						fclose(F);
 					}
 ;
@@ -227,6 +246,10 @@ maketitle_stmt:
 								fclose(output);
 
 								system("mv aux.html saida.html");
+
+								F = fopen("saida.html", "a");
+								fprintf(F, "<h1>%s</h1>\n", title);;
+								fclose(F);
 
 							}
 ;
