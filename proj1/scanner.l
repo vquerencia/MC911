@@ -2,16 +2,14 @@
 #include "parser.h"
 %}
 
-STRING [a-zA-Z0-9\-:,.][a-zA-Z0-9_.*\-^+=!&(),:/]*
-WHITESPACE [ \r\t]+
+STRING [a-zA-Z0-9_.*\-^+=!&(),:/ \r\t$<>]+
 NEWLINE [\n]
 ANY_CHAR .
 
 %option case-insensitive
 
 %%
-
-{WHITESPACE} /* ignore */ ;
+	
 {NEWLINE}			{return T_NEWLINE;}
 "\\documentclass" 		{return T_DOCUMENTCLASS;}
 "\\usepackage" 			{return T_USEPACKAGE; }
@@ -28,7 +26,6 @@ ANY_CHAR .
 "\\item"			{return T_ITEM;}
 "\\begin{document}"		{return T_BEGIN_DOCUMENT;}
 "\\end{document}"		{return T_END_DOCUMENT;}
-"\\$"				{return T_ESCAPEDOLAR;}
 "\\begin{thebibliography}"	{return T_BEGIN_THEBIBLIOGRAPHY;}
 "\\end{thebibliography}"	{return T_END_THEBIBLIOGRAPHY;}
 "{"				{return '{';}
@@ -36,10 +33,8 @@ ANY_CHAR .
 "["				{return '[';}
 "]"				{return ']';} 
 "("				{return '(';}
-")"				{return ')';} 
-"$"				{return '$';}
-"\\"				{return '\\';}
-
+")"				{return ')';}
+"\\"				{return T_BARRA;}  
 
 
 {STRING} {	

@@ -10,6 +10,9 @@ char *title;
 
 int bib_count=0;
 
+int bib_begin=0;
+int item_begin=0;
+
 
 %}
  
@@ -40,9 +43,9 @@ int bib_count=0;
 %token T_BEGIN_THEBIBLIOGRAPHY
 %token T_END_THEBIBLIOGRAPHY
 %token T_NEWLINE
+%token T_BARRA
 
-%type <str> begin_document_stmt end_document_stmt math_stmt textbf_stmt textit_stmt texto
-	includegraphics_stmt maketitle_stmt itemize_stmt_begin itemize_stmt_end item values_list
+%type <str> texto values_list elem
 
 %start stmt_list
 
@@ -89,7 +92,7 @@ author:
 begin_document_stmt:
 		T_BEGIN_DOCUMENT T_NEWLINE 	{
 							FILE *F = fopen("saida.html", "w"); 
-							fprintf(F, "<html>\n<head>\n\n\n<script type='text/x-mathjax-config'>  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}}); </script> <script type='text/javascript' src='https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'> </script> </head>\n<body>\n");
+							fprintf(F, "<html>\n<head>\n\n\n<script type='text/x-mathjax-config'>  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']], processEscapes: true}}); </script> <script type='text/javascript' src='https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'> </script> </head>\n<body>\n");
 							fclose(F);
 						}
 ;
@@ -121,10 +124,9 @@ documento:
 	|	elem_documento
 ;
 
-elem_documento:
-		math_stmt	
-	|	textbf_stmt	
-	|	textit_stmt
+elem_documento:	
+		textbf_stmt	
+	|	textit_stmt	
 	|	includegraphics_stmt
 	|	maketitle_stmt T_NEWLINE
 	|	itemize_stmt_begin T_NEWLINE
@@ -141,21 +143,6 @@ elem_documento:
 						fclose(F);  
 				}
 
-;
-
-
-math_stmt:
-		'$' values_list '$'	{
-						FILE *F = fopen("saida.html", "a"); 
-						fprintf(F, "$%s$\n", $2);
-						fclose(F);
-					}
-
-	|	'$' '\\' values_list '$'	{
-						FILE *F = fopen("saida.html", "a"); 
-						fprintf(F, "$\\%s$\n", $3);
-						fclose(F);
-					}
 ;
 
 textbf_stmt:
@@ -194,28 +181,45 @@ cite:
 
 bib_begin:
 		T_BEGIN_THEBIBLIOGRAPHY 		{
-								FILE *F = fopen("saida.html", "a"); 
-								fprintf(F, "<ol start=0>\n");
-								fclose(F);	
+								if (bib_begin!=0)
+									yyerror("syntax error, unexpected T_BEGIN_THEBIBLIOGRAPHY");	
+								else
+								{							
+									FILE *F = fopen("saida.html", "a"); 
+									fprintf(F, "<ol start=0>\n");
+									fclose(F);
+									bib_begin=1;
+								}
 							}
 ;
 
 bib_end:
 		T_END_THEBIBLIOGRAPHY 			{
-								FILE *F = fopen("saida.html", "a"); 
-								fprintf(F, "</ol>\n");
-								fclose(F);	
+								if (bib_begin!=1)
+									yyerror("syntax error, unexpected T_END_THEBIBLIOGRAPHY");
+								else
+								{
+									FILE *F = fopen("saida.html", "a"); 
+									fprintf(F, "</ol>\n");
+									fclose(F);
+									bib_begin=2;
+								}
 							}
 ;
 
 bib_item:
 		T_BIBITEM '{' T_STRING '}'		{
-								FILE *F = fopen("saida.html", "a");
-								char command[300];
-								fprintf(F, "<a name='bib.%d'><li value=%d> ", bib_count, bib_count);
-								fclose(F);
-								sprintf(command, "sed -i 's/%s/<a href='#bib.%d'>%d<\\/a>/g' saida.html", $3, bib_count++, bib_count); 
-								system(command);
+								if (bib_begin!=1)
+									yyerror("syntax error, unexpected T_BIBITEM");
+								else
+								{
+									FILE *F = fopen("saida.html", "a");
+									char command[300];
+									fprintf(F, "<a name='bib.%d'><li value=%d> ", bib_count, bib_count);
+									fclose(F);
+									sprintf(command, "sed -i 's/%s/<a href='#bib.%d'>%d<\\/a>/g' saida.html", $3, bib_count++, bib_count); 
+									system(command);
+								}
 							}
 ;
 
@@ -259,14 +263,21 @@ itemize_stmt_begin:
 										FILE *F = fopen("saida.html", "a"); 
 										fprintf(F, "<ul>\n");;
 										fclose(F);
+										item_begin+=1;
 									}
 ;
 
 itemize_stmt_end:
 		T_END_ITEMIZE						{
-										FILE *F = fopen("saida.html", "a"); 
-										fprintf(F, "</ul>\n");
-										fclose(F);
+										if (item_begin == 0)
+											yyerror("syntax error, unexpected T_END_ITEMIZE");
+										else
+										{
+											FILE *F = fopen("saida.html", "a"); 
+											fprintf(F, "</ul>\n");
+											fclose(F);
+											item_begin-=1;
+										}
 									}
 ;
 
@@ -274,9 +285,14 @@ itemize_stmt_end:
 
 item:
 		T_ITEM values_list		{ 
-							FILE *F = fopen("saida.html", "a"); 							
-							fprintf(F, "<li>%s</li>\n", $2); 
-							fclose(F);
+							if (item_begin == 0)
+								yyerror("syntax error, unexpected T_ITEM");
+							else
+							{
+								FILE *F = fopen("saida.html", "a"); 							
+								fprintf(F, "<li>%s</li>\n", $2); 
+								fclose(F);
+							}
 						}
 ;
 
@@ -289,10 +305,18 @@ texto:
 ;
 
 values_list:
-		T_STRING 				{ $$ = $1; }
-	| 	values_list T_STRING 			{ $$ = concat(3, $1, " ", $2); }
-	| 	'[' values_list ']'		  	{ $$ = concat(3, "[", $2, "]"); }
+		elem 					{ $$ = $1; }
+	| 	values_list elem 			{ $$ = concat(2, $1, $2); }
 
+;
+
+elem:
+		T_STRING			{$$ = $1;}
+	|	'['				{$$ = "[";}
+	|	']'				{$$ = "]";}
+	|	'{'				{$$ = "{";}
+	|	'}'				{$$ = "}";}
+	|	T_BARRA				{$$ = "\\";}
 ;
 
 %%
@@ -326,6 +350,7 @@ char* concat(int count, ...)
 int yyerror(const char* errmsg)
 {
 	printf("\n*** Erro: %s\n", errmsg);
+	return 0;
 }
  
 int yywrap(void) { return 1; }
